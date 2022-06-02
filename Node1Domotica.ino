@@ -3,27 +3,33 @@
 #include <ESP8266WiFiMulti.h>
 #include <ESP8266HTTPClient.h>
 #include <WiFiClient.h>
+#include <Servo.h>
+
 
 ESP8266WiFiMulti WiFiMulti;
+//#define SERVER "pw4.kyared.com/S18030221"
 #define SERVER "172.17.123.130"
 #define USER "admin"
 #define PASS "123"
 
+#define LEDsala D1
+#define LEDcuarto D2
+#define PIRsala D8
+#define PIRcuarto D7
 
-#define PIR D8
-#define LED D0
+int hay, HAYsala, HAYcuarto;
 
-int hay;
 String jwt;
 int sesion = 0;
-int temporal = -1;
+int tempSala = -1, tempCuarto = -1;
 
 void setup()
 {
   Serial.begin(9600);
-  pinMode(LED, OUTPUT);
-  pinMode(PIR,INPUT);
-
+  pinMode(LEDsala, OUTPUT);
+  pinMode(LEDcuarto, OUTPUT);
+  pinMode(PIRsala,INPUT);
+  pinMode(PIRcuarto,INPUT);
   Serial.println("Conectando...");
   WiFi.mode(WIFI_STA);
   WiFiMulti.addAP("DARKROW7551", "1234567891");
@@ -35,19 +41,43 @@ void setup()
 
 void loop()
 {
-  hay = digitalRead(PIR);
-  if(hay != temporal){
-    Serial.println(hay);
-    if( hay == HIGH ){
-      digitalWrite(LED,HIGH);
+  HAYsala = digitalRead(PIRsala);
+  HAYcuarto = digitalRead(PIRcuarto);
+  if(HAYsala != tempSala){
+    Serial.println("Sala");
+    Serial.println(HAYsala);
+    if( HAYsala == HIGH ){ //PIR de la sala, prende LEDS
+      digitalWrite(LEDsala,HIGH);
       delay(1000);
     }else{
-      digitalWrite(LED,LOW);
+      digitalWrite(LEDsala,LOW);
       delay(1000);
     }
-    temporal = hay;
-    if(sesion == 0) login();
-      else post();
+    tempSala = HAYsala;
+    if(sesion == 0){
+      login();
+    } else{ 
+      hay = tempSala;
+      post("P","Sala");
+    }
+  }
+  if(HAYcuarto != tempCuarto){
+    Serial.println("Cuarto");
+    Serial.println(HAYcuarto);
+    if( HAYcuarto == HIGH ){ //PIR de la sala, prende LEDS
+      digitalWrite(LEDcuarto,HIGH);
+      delay(1000);
+    }else{
+      digitalWrite(LEDcuarto,LOW);
+      delay(1000);
+    }
+    tempCuarto = HAYcuarto;
+    if(sesion == 0){
+      login();
+    } else{ 
+      hay = tempCuarto;
+      post("P","Cuarto");
+    }
   }
   delay(10000);
 }
@@ -82,7 +112,7 @@ void login(){
 
 
 
-void post(){
+void post(String sensor, String ubic){
     WiFiClient client;
     HTTPClient http;
     String estado;
@@ -94,7 +124,7 @@ void post(){
     }else{
       estado = "encendido";
     }
-    int httpCode = http.POST("sensor=P&estado=" + estado + "&ubicacion=Sala");
+    int httpCode = http.POST("sensor=" + sensor + "&estado=" + estado + "&ubicacion=" + ubic);
     Serial.println(jwt);
     if (httpCode > 0) {
       if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_CREATED) {

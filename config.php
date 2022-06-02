@@ -4,7 +4,7 @@ class Config{
     
     const HOST = "localhost";
     const USER = "root";
-    const BD = "domoticaprueba";
+    const BD = "domotica";
     const PASS = "";
 
 }
